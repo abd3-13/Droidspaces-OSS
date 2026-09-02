@@ -922,7 +922,7 @@ int main(int argc, char **argv) {
 
   /* 1. Discovery Pass: Capture identity and command without permuting argv.
    * Using '-' at the start of optstring returns non-options as '1'. */
-  while ((opt = getopt_long(argc, argv, "-r:i:A:sn:h:d:fHXPvVB:C:E:u:", long_options, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "-r:i:A:s:n:h:d:fHXPvVB:C:E:u:", long_options, NULL)) != -1) {
     if (opt == 1) { /* Non-option argument */
       if (!discovered_cmd) {
         discovered_cmd = optarg;
