@@ -895,4 +895,21 @@ int ds_daemon_run(int foreground, char **argv);
 int ds_client_run(int argc, char **argv);
 int ds_daemon_probe(void);
 
+#include <linux/loop.h>
+/* Busybox bundled with DroidSpaces (Android only) */
+#define DS_BUSYBOX  DS_WORKSPACE_ANDROID "/bin/busybox"
+int run_cmd(const char *const argv[]);
+int parse_size(const char *str, off_t *bytes);
+/* ---------------------------------------------------------------------------
+ * create_img.c
+ * ---------------------------------------------------------------------------*/
+
+int ds_create_image(const char *archive, const char *image, const char *size);
+int create_sparse_image(const char *image, off_t bytes);
+int attach_loop(const char *image, char *loop_out, size_t loop_sz);
+void detach_loop(const char *loop_dev);
+int make_mount_point(char *path_out, size_t size);
+int is_valid_archive(const char *path);
+int extract_archive(const char *archive, const char *dest);
+
 #endif /* DROIDSPACE_H */

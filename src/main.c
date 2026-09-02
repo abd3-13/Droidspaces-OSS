@@ -43,12 +43,17 @@ void print_usage(void) {
       "  daemon                    Run daemon mode (use --foreground for "
       "foreground execution)\n\n");
 
-  printf(C_BOLD "Options (Container Setup):" C_RESET "\n"
-                "  -r, --rootfs=PATH         Path to rootfs directory\n"
-                "  -i, --rootfs-img=PATH     Path to rootfs image (.img)\n"
-                "  -n, --name=NAME           Container name (mandatory)\n"
-                "  -h, --hostname=NAME       Set container hostname\n"
-                "  -C, --conf=PATH           Load configuration from file\n\n");
+  printf(
+      C_BOLD "Options (Image Creation):" C_RESET "\n"
+      "  -A, --rootfs-arc=PATH     Path to os rootfs archive file\n"
+      "  -i, --rootfs-img=PATH     Path to rootfs image (.img)\n"
+      "  -s, --size=NAME           Size of image.(in GB only, eg. 2G, 10G, 4G)\n\n"
+      C_BOLD "Options (Container Setup):" C_RESET "\n"
+      "  -r, --rootfs=PATH         Path to rootfs directory\n"
+      "  -i, --rootfs-img=PATH     Path to rootfs image (.img)\n"
+      "  -n, --name=NAME           Container name (mandatory)\n"
+      "  -h, --hostname=NAME       Set container hostname\n"
+      "  -C, --conf=PATH           Load configuration from file\n\n");
 
   printf(
       C_BOLD
@@ -365,6 +370,8 @@ static void enforce_nat_safety(struct ds_config *cfg, int argc, char **argv) {
 }
 
 static struct option long_options[] = {
+    {"size", required_argument, 0, 's'},
+    {"rootfs-arc", required_argument, 0, 'A'},
     {"rootfs", required_argument, 0, 'r'},
     {"rootfs-img", required_argument, 0, 'i'},
     {"name", required_argument, 0, 'n'},
@@ -422,8 +429,7 @@ int ds_apply_cli_overrides(int argc, char **argv, struct ds_config *cfg,
   enum ds_net_mode cli_net_mode = DS_NET_HOST;
 
   /* Strict mode for 'run' prevents stealing arguments from the sub-command. */
-  const char *optstring =
-      strict ? "+r:i:n:h:d:fHXPvVB:C:E:u:" : "r:i:n:h:d:fHXPvVB:C:E:u:";
+  const char *optstring = strict ? "+r:i:A:s:n:h:d:fHXPvVB:C:E:u:" : "r:i:A:s:n:h:d:fHXPvVB:C:E:u:";
 
   /* --reset must wipe the config BEFORE the other flags land on top, but
    * getopt hands us options in argv order. Scan for it first so
@@ -910,14 +916,13 @@ int main(int argc, char **argv) {
    * 3. Override Pass: Apply CLI overrides on top of loaded config.
    */
   const char *discovered_cmd = NULL;
-  char temp_r[PATH_MAX] = {0}, temp_i[PATH_MAX] = {0};
+  char temp_r[PATH_MAX] = {0}, temp_i[PATH_MAX] = {0}, temp_s[PATH_MAX] = {0}, temp_f[PATH_MAX] = {0};
   char run_user[256] = {0};
   int opt;
 
   /* 1. Discovery Pass: Capture identity and command without permuting argv.
    * Using '-' at the start of optstring returns non-options as '1'. */
-  while ((opt = getopt_long(argc, argv, "-r:i:n:h:d:fHXPvVB:C:E:u:",
-                            long_options, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "-r:i:A:sn:h:d:fHXPvVB:C:E:u:", long_options, NULL)) != -1) {
     if (opt == 1) { /* Non-option argument */
       if (!discovered_cmd) {
         discovered_cmd = optarg;
@@ -939,6 +944,10 @@ int main(int argc, char **argv) {
       safe_strncpy(temp_r, optarg, sizeof(temp_r));
     } else if (opt == 'i') {
       safe_strncpy(temp_i, optarg, sizeof(temp_i));
+    } else if (opt == 's') {
+      safe_strncpy(temp_s, optarg, sizeof(temp_s));
+    } else if (opt == 'A') {
+      safe_strncpy(temp_f, optarg, sizeof(temp_f));
     } else if (opt == 'u') {
       safe_strncpy(run_user, optarg, sizeof(run_user));
     }
@@ -988,6 +997,10 @@ int main(int argc, char **argv) {
       ret = proxy_ret;
       goto cleanup;
     }
+  }
+
+  if (discovered_cmd && strcmp(discovered_cmd, "create") == 0) {
+    return ds_create_image(temp_f, temp_i, temp_s);
   }
 
   /* Unified root gate: block all non-exempt commands before any work begins */
